@@ -52,12 +52,18 @@ def remove_candidates_squ(c, s, idx, e, d):
 
 
 def init_candidates(c, d):
+    r = True
     for i in range(9):
         for j in range(9):
             cs = c[i][j]
-            assert len(cs) > 0
+            if len(cs) < 1:
+                r = False
+                break 
             if len(cs) == 1:
                 set_candidate(c, list(cs)[0], i, j, d)
+        if not r:
+            break
+    return r
 
 
 def candidate_set_to_str(cs):
@@ -200,7 +206,7 @@ def get_unique_candidates_in_col(c, j, d):
                 cnt[n] += 1
                 if n not in cntp:
                     cntp[n] = i, j
-    print("uccc j {} c {} p {}".format(j, cnt, cntp))
+#    print("uccc j {} c {} p {}".format(j, cnt, cntp))
     r = list(map(lambda n:(n[0], cntp[n[0]]), filter(lambda item:item[1] == 1, cnt.items())))
 
     return r
@@ -309,6 +315,19 @@ def candidate_sol_write_to_board(c, board):
             board[i][j] = list(cs)[0]
 
 
+def check_candidates_complete(c):
+    r = True
+    for i in range(9):
+        for j in range(9):
+            cs = c[i][j]
+            if len(cs) != 1:
+                r = False
+                break
+        if not r:
+            break
+    return r
+            
+
 class Solution:
 
     def solveSudoku(self, board):
@@ -321,18 +340,22 @@ class Solution:
         c = create_candidates(board)
         print("original")
         print(candidates_to_str(c))
-        init_candidates(c, d)
+        v = init_candidates(c, d)
         print("inited")
         print(candidates_to_str(c))
-        while True:
+        while v:
             print("process def lines")
             process_definitory_lines(c, d)
             print("process uniq lines")
             r = process_unique_candidates(c, d)
             if not r:
                 break
+        if check_candidates_complete(c):
+            print("vien")
+        else:
+            print("fick")
         print("{}".format(candidates_sol_to_str(c)))
-        candidate_sol_write_to_board(c, board)
+        # candidate_sol_write_to_board(c, board)
         print(board)
 
 
