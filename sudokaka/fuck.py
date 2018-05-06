@@ -119,8 +119,9 @@ def check_uniq_definitory_col(c, idx, rj, rs):
     return rs 
 
 
-def get_definitory_lines(c, idx):
+def get_definitory_lines(c, idx, d):
     ii, ij = square_idx_to_pos(idx)
+#    print("gdl idx {}".format(idx))
     rows = {}
     cols = {}
     for i in range(3):
@@ -130,13 +131,14 @@ def get_definitory_lines(c, idx):
         for j in range(3):
             cj = ij + j
             cs = c[ci][cj]
+            assert len(cs) != 1 or (ci, cj) in d, "{} es {}".format((ci, cj), candidate_set_to_str(cs))
             if len(cs) > 1:
                 if rs is None:
                     rs = set(cs)
 #                print("ci {} cj {} cs {} rs {}".format(ci, cj, candidate_set_to_str(cs), candidate_set_to_str(rs)))
                 rs &= cs
                 ps.append((ci, cj))
-        if rs and check_uniq_definitory_row(c, idx, i, rs) and len(rs) <= len(ps):
+        if rs and check_uniq_definitory_row(c, idx, i, rs):
 #            print("g ci {} rs {}".format(ci, candidate_set_to_str(rs)))
             rows[ci] = [rs, set(ps)]
             
@@ -148,14 +150,17 @@ def get_definitory_lines(c, idx):
         for i in range(3):
             ci = ii + i
             cs = c[ci][cj]
-            if len(cs) > 1:
+            if len(cs) > 1 or (ci, cj) not in d:
                 if rs is None:
                     rs = set(cs)
+#                print("ci {} cj {} cs {} rs {}".format(ci, cj, candidate_set_to_str(cs), candidate_set_to_str(rs)))
                 rs &= cs
                 ps.append((ci, cj))
-        if rs and check_uniq_definitory_col(c, idx, j, rs) and len(rs) <= len(ps):
+        if rs and check_uniq_definitory_col(c, idx, j, rs):
+#            print("g cj {} rs {}".format(cj, candidate_set_to_str(rs)))
             cols[cj] = [rs, set(ps)]
 #    print("r rows {}".format(rows))
+#    print("r cols {}".format(cols))
     return rows, cols
 
 
@@ -268,27 +273,42 @@ def process_unique_candidates(c, d):
 def process_definitory_lines(c, d):
     rows = {}
     cols = {}
+    for i in range(9):
+        rows[i] = []
+        cols[i] = []
     for idx in range(9):
-        rowst, colst = get_definitory_lines(c, idx)
+        rowst, colst = get_definitory_lines(c, idx, d)
 #        print(" idx {} r {} c {}".format(idx, list(map(lambda x:candidate_set_to_str(rowst[x][0]) + ":" + str(rowst[x][1]), rowst)), list(map(lambda x:candidate_set_to_str(colst[x][0]) + ":" + str(colst[x][1]), colst))))
-        rows.update(rowst)
-        cols.update(colst)
+        for i in rowst:
+            print("dl en i {} se anade {}".format(i, rowst[i]))
+            rows[i].append(rowst[i])
+        for j in colst:
+            cols[j].append(colst[j])
+#            print("dl en j {} se anade {} aora es {}".format(j, colst[j], cols[j]))
     
-    print("dl  r {} c {}".format(list(map(lambda x:candidate_set_to_str(rows[x][0]) + ":" + str(rows[x][1]), rows)), list(map(lambda x:candidate_set_to_str(cols[x][0]) + ":" + str(cols[x][1]), cols))))
+    print("dl r {} c {}".format(rows, cols))
+#    print("dl  r {} c {}".format(list(map(lambda x:candidate_set_to_str(rows[x][0]) + ":" + str(rows[x][1]), rows)), list(map(lambda x:candidate_set_to_str(cols[x][0]) + ":" + str(cols[x][1]), cols))))
     for i in rows:
-        s, e = rows[i]
+        for s, e in rows[i]:
 #        print("cara {}".format(e))
-        remove_candidates_row(c, s, i, e, d)
+            remove_candidates_row(c, s, i, e, d)
         
     print("removed dl from rows")
     print(candidates_to_str(c))
     
-    for j in cols:
-        s, e = cols[j]
-        remove_candidates_col(c, s, j, e, d)
+    print("proc uniq en cand r")
+    process_uniques_in_candidate_set(c, d)
     
+    for j in cols:
+        for s, e in cols[j]:
+            remove_candidates_col(c, s, j, e, d)
+    
+    process_uniques_in_candidate_set(c, d)
     print("removed dl from cols")
     print(candidates_to_str(c))
+    
+    print("proc uniq en cand c")
+    process_uniques_in_candidate_set(c, d)
     
     return (not not rows) or cols
 
@@ -326,7 +346,19 @@ def check_candidates_complete(c):
         if not r:
             break
     return r
+
             
+def process_uniques_in_candidate_set(c, d):
+    r = False
+    for i in range(9):
+        for j in range(9):
+            cs = c[i][j]
+            if len(cs) == 1 and (i, j) not in d:
+                n = list(cs)[0]
+                set_candidate(c, n, i, j, d)
+                r = True
+    return r
+
 
 class Solution:
 
@@ -343,12 +375,22 @@ class Solution:
         v = init_candidates(c, d)
         print("inited")
         print(candidates_to_str(c))
+        while(process_uniques_in_candidate_set(c, d)):
+            pass
+        print("inited unicos ")
+        print(candidates_to_str(c))
         while v:
             print("process def lines")
-            process_definitory_lines(c, d)
+            pd = process_definitory_lines(c, d)
+            print("process uniq in cand")
+            while(process_uniques_in_candidate_set(c, d)):
+                pass
             print("process uniq lines")
-            r = process_unique_candidates(c, d)
-            if not r:
+            pu = process_unique_candidates(c, d)
+            print("process uniq in cand")
+            while(process_uniques_in_candidate_set(c, d)):
+                pass
+            if not pd and not pu:
                 break
         if check_candidates_complete(c):
             print("vien")
