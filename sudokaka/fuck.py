@@ -86,36 +86,34 @@ def candidates_to_str(c):
 
 def check_uniq_definitory_row(c, idx, ri, rs):
     ii, ij = square_idx_to_pos(idx)
-    u = True
     for i in range(3):
         ci = ii + i
         if i != ri:
             for j in range(3):
                 cj = ij + j
                 cs = c[ci][cj]
-                if rs <= cs:
-                    u = False
+                rs-=cs
+                if not rs:
                     break
-            if not u:
+            if not rs:
                 break
-    return u
+    return rs
 
 
 def check_uniq_definitory_col(c, idx, rj, rs):
     ii, ij = square_idx_to_pos(idx)
-    u = True
     for j in range(3):
         cj = ij + j
         if j != rj:
             for i in range(3):
                 ci = ii + i
                 cs = c[ci][cj]
-                if rs <= cs:
-                    u = False
+                rs -= cs
+                if not rs:
                     break
-            if not u:
+            if not rs:
                 break
-    return u
+    return rs 
 
 
 def get_definitory_lines(c, idx):
