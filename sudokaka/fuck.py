@@ -21,15 +21,15 @@ def create_candidates(m):
     return c
 
 
-def remove_candidates_row(c, s, i, e):
+def remove_candidates_row(c, s, i, e, d):
     for j in range(9):
-        if (i, j) not in e:
+        if (i, j) not in e | d:
             c[i][j] -= s
 
             
-def remove_candidates_col(c, s, j, e):
+def remove_candidates_col(c, s, j, e, d):
     for i in range(9):
-        if (i, j) not in e:
+        if (i, j) not in e | d:
             c[i][j] -= s
 
 
@@ -41,13 +41,13 @@ def pos_to_square_idx(i, j):
     return (i // 3) * 3 + j // 3
 
 
-def remove_candidates_squ(c, s, idx, e):
+def remove_candidates_squ(c, s, idx, e, d):
     ii, ij = square_idx_to_pos(idx)
     for i in range(3):
         for j in range(3):
             ci = ii + i
             cj = ij + j
-            if (ci, cj) not in e:
+            if (ci, cj) not in e | d:
                 c[ci][cj] -= s
 
 
@@ -57,7 +57,7 @@ def init_candidates(c, d):
             cs = c[i][j]
             assert len(cs) > 0
             if len(cs) == 1:
-                set_candidate(c, cs, i, j, d)
+                set_candidate(c, list(cs)[0], i, j, d)
 
 
 def candidate_set_to_str(cs):
@@ -132,7 +132,7 @@ def get_definitory_lines(c, idx):
                 ps.append((ci, cj))
         if rs and check_uniq_definitory_row(c, idx, i, rs) and len(rs) <= len(ps):
 #            print("g ci {} rs {}".format(ci, candidate_set_to_str(rs)))
-            rows[ci] = [rs, ps]
+            rows[ci] = [rs, set(ps)]
             
 #    print("r1 rows {}".format(rows))
     for j in range(3):
@@ -148,7 +148,7 @@ def get_definitory_lines(c, idx):
                 rs &= cs
                 ps.append((ci, cj))
         if rs and check_uniq_definitory_col(c, idx, j, rs) and len(rs) <= len(ps):
-            cols[cj] = [rs, ps]
+            cols[cj] = [rs, set(ps)]
 #    print("r rows {}".format(rows))
     return rows, cols
 
@@ -163,11 +163,12 @@ def get_unique_candidates_in_square(c, idx, d):
             cj = ij + j
             if (ci, cj) not in d:
                 cs = c[ci][cj]
-                list(map(lambda n:iadd(cnt[n], 1), cs))
                 for n in cs:
+                    cnt[n] += 1
                     if n not in cntp:
                         cntp[n] = ci, cj
-    r = map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items()))
+#    print("idx {} p {}".format(idx, cntp))
+    r = list(map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items())))
 
     return list(zip(r, map(lambda x:cntp[x], r)))
 
@@ -178,11 +179,13 @@ def get_unique_candidates_in_row(c, i, d):
     for j in range(9):
         if (i, j) not in d:
             cs = c[i][j]
-            list(map(lambda n:iadd(cnt[n], 1), cs))
             for n in cs:
+                cnt[n] += 1
                 if n not in cntp:
                     cntp[n] = i, j
-    r = map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items()))
+#    print("uccr i {} c {} p {}".format(i, cnt, cntp))
+    r = list(map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items())))
+#    print("r {}".format(list(map(lambda x:cntp[x], r))))
 
     return list(zip(r, map(lambda x:cntp[x], r)))
 
@@ -193,11 +196,12 @@ def get_unique_candidates_in_col(c, j, d):
     for i in range(9):
         if (i, j) not in d:
             cs = c[i][j]
-            list(map(lambda n:iadd(cnt[n], 1), cs))
             for n in cs:
+                cnt[n] += 1
                 if n not in cntp:
                     cntp[n] = i, j
-    r = list(map(lambda n:(n, cntp[n]), filter(lambda item:item[1] == 1, cnt.items())))
+    print("uccc j {} c {} p {}".format(j, cnt, cntp))
+    r = list(map(lambda n:(n[0], cntp[n[0]]), filter(lambda item:item[1] == 1, cnt.items())))
 
     return r
 
@@ -206,11 +210,12 @@ def set_candidate(c, n, i, j, d):
     idx = pos_to_square_idx(i, j)
     cs = set([n])
     p = (i, j)
-    e = set(p)
-    remove_candidates_row(c, cs, i, e)
-    remove_candidates_col(c, cs, j, e)
-    remove_candidates_squ(c, cs, idx, e)
+    e = set([p])
+    remove_candidates_row(c, cs, i, e, d)
+    remove_candidates_col(c, cs, j, e, d)
+    remove_candidates_squ(c, cs, idx, e, d)
     d.add(p)
+    c[i][j] = cs
 
 
 def process_unique_candidates(c, d):
@@ -221,41 +226,88 @@ def process_unique_candidates(c, d):
         rowst = get_unique_candidates_in_row(c, i, d)
         rows.extend(rowst)
     
+    print("uc rows {}".format(rows))
+    
     for n, (i, j) in rows:
+#        print("pon n {} p {}".format(n, (i, j)))
         set_candidate(c, n, i, j, d)
+        
+    print(candidates_to_str(c))
 
     for j in range(9):
         colst = get_unique_candidates_in_col(c, j, d)
         cols.extend(colst)
+        
+    print("uc cols {}".format(cols))
 
     for n, (i, j) in cols:
         set_candidate(c, n, i, j, d)
+        
+    print(candidates_to_str(c))
         
     for idx in range(9):
         squrest = get_unique_candidates_in_square(c, idx, d)
         squares.extend(squrest)
 
+    print("uc sqs {}".format(squares))
+    
     for n, (i, j) in squares:
         set_candidate(c, n, i, j, d)
+        
+    print(candidates_to_str(c))
+        
+    return (not not rows) or cols or squares
 
 
-def process_definitory_lines(c):
+def process_definitory_lines(c, d):
     rows = {}
     cols = {}
     for idx in range(9):
         rowst, colst = get_definitory_lines(c, idx)
-        print(" idx {} r {} c {}".format(idx, list(map(lambda x:candidate_set_to_str(rowst[x][0]) + ":" + str(rowst[x][1]), rowst)), list(map(lambda x:candidate_set_to_str(colst[x][0]) + ":" + str(colst[x][1]), colst))))
+#        print(" idx {} r {} c {}".format(idx, list(map(lambda x:candidate_set_to_str(rowst[x][0]) + ":" + str(rowst[x][1]), rowst)), list(map(lambda x:candidate_set_to_str(colst[x][0]) + ":" + str(colst[x][1]), colst))))
         rows.update(rowst)
         cols.update(colst)
     
+    print("dl  r {} c {}".format(list(map(lambda x:candidate_set_to_str(rows[x][0]) + ":" + str(rows[x][1]), rows)), list(map(lambda x:candidate_set_to_str(cols[x][0]) + ":" + str(cols[x][1]), cols))))
     for i in rows:
         s, e = rows[i]
-        remove_candidates_row(c, s, i, e)
+#        print("cara {}".format(e))
+        remove_candidates_row(c, s, i, e, d)
+        
+    print("removed dl from rows")
+    print(candidates_to_str(c))
     
     for j in cols:
         s, e = cols[j]
-        remove_candidates_col(c, s, j, e)
+        remove_candidates_col(c, s, j, e, d)
     
+    print("removed dl from cols")
+    print(candidates_to_str(c))
+    
+    return (not not rows) or cols
+
+    
+def candidates_sol_to_str(c):
+    r = []
+    for i in range(9):
+        rt = []
+        for j in range(9):
+            cs = c[i][j]
+            if len(cs) == 1:
+                rt += [str(list(cs)[0])]
+            else:
+                rt += candidate_set_to_str(cs)
+        r.append(rt)
+    return "\n".join(map(lambda l:"|".join(l), r))
+
+
+def candidate_sol_write_to_board(c, board):
+    for i in range(9):
+        for j in range(9):
+            cs = c[i][j]
+            assert len(cs) == 1, "fucj {}".format(cs)
+            board[i][j] = list(cs)[0]
+
 
 class Solution:
 
@@ -264,19 +316,33 @@ class Solution:
         :type board: List[List[str]]
         :rtype: void Do not return anything, modify board in-place instead.
         """
+        print("board {}".format(board))
         d = set()
         c = create_candidates(board)
+        print("original")
+        print(candidates_to_str(c))
         init_candidates(c, d)
+        print("inited")
         print(candidates_to_str(c))
-        process_definitory_lines(c)
-        print(candidates_to_str(c))
+        while True:
+            print("process def lines")
+            process_definitory_lines(c, d)
+            print("process uniq lines")
+            r = process_unique_candidates(c, d)
+            if not r:
+                break
+        print("{}".format(candidates_sol_to_str(c)))
+        candidate_sol_write_to_board(c, board)
+        print(board)
 
 
 m = []
 
 
 for _ in range(9):
-    m.append(input().strip())
+
+
+    m.append(list(input().strip()))
 
 s = Solution()
 s.solveSudoku(m)
