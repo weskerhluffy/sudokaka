@@ -4,6 +4,8 @@ Created on 05/05/2018
 @author: ernesto
 '''
 
+from operator import iadd, itemgetter
+
 
 def create_candidates(m):
     c = []
@@ -49,18 +51,13 @@ def remove_candidates_squ(c, s, idx, e):
                 c[ci][cj] -= s
 
 
-def init_candidates(c):
+def init_candidates(c, d):
     for i in range(9):
         for j in range(9):
-            p = i, j
-            idx = pos_to_square_idx(i, j)
-            e = set([p])
             cs = c[i][j]
             assert len(cs) > 0
             if len(cs) == 1:
-                remove_candidates_row(c, cs, i, e)
-                remove_candidates_col(c, cs, j, e)
-                remove_candidates_squ(c, cs, idx, e)
+                set_candidate(c, cs, i, j, d)
 
 
 def candidate_set_to_str(cs):
@@ -92,7 +89,7 @@ def check_uniq_definitory_row(c, idx, ri, rs):
             for j in range(3):
                 cj = ij + j
                 cs = c[ci][cj]
-                rs-=cs
+                rs -= cs
                 if not rs:
                     break
             if not rs:
@@ -156,6 +153,92 @@ def get_definitory_lines(c, idx):
     return rows, cols
 
 
+def get_unique_candidates_in_square(c, idx, d):
+    ii, ij = square_idx_to_pos(idx)
+    cnt = dict(zip(map(str, range(1, 10)), [0] * 9))
+    cntp = {}
+    for i in range(3):
+        ci = ii + i
+        for j in range(3):
+            cj = ij + j
+            if (ci, cj) not in d:
+                cs = c[ci][cj]
+                list(map(lambda n:iadd(cnt[n], 1), cs))
+                for n in cs:
+                    if n not in cntp:
+                        cntp[n] = ci, cj
+    r = map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items()))
+
+    return list(zip(r, map(lambda x:cntp[x], r)))
+
+
+def get_unique_candidates_in_row(c, i, d):
+    cnt = dict(zip(map(str, range(1, 10)), [0] * 9))
+    cntp = {}
+    for j in range(9):
+        if (i, j) not in d:
+            cs = c[i][j]
+            list(map(lambda n:iadd(cnt[n], 1), cs))
+            for n in cs:
+                if n not in cntp:
+                    cntp[n] = i, j
+    r = map(itemgetter(0), filter(lambda item:item[1] == 1, cnt.items()))
+
+    return list(zip(r, map(lambda x:cntp[x], r)))
+
+
+def get_unique_candidates_in_col(c, j, d):
+    cnt = dict(zip(map(str, range(1, 10)), [0] * 9))
+    cntp = {}
+    for i in range(9):
+        if (i, j) not in d:
+            cs = c[i][j]
+            list(map(lambda n:iadd(cnt[n], 1), cs))
+            for n in cs:
+                if n not in cntp:
+                    cntp[n] = i, j
+    r = list(map(lambda n:(n, cntp[n]), filter(lambda item:item[1] == 1, cnt.items())))
+
+    return r
+
+
+def set_candidate(c, n, i, j, d):
+    idx = pos_to_square_idx(i, j)
+    cs = set([n])
+    p = (i, j)
+    e = set(p)
+    remove_candidates_row(c, cs, i, e)
+    remove_candidates_col(c, cs, j, e)
+    remove_candidates_squ(c, cs, idx, e)
+    d.add(p)
+
+
+def process_unique_candidates(c, d):
+    rows = []
+    cols = []
+    squares = []
+    for i in range(9):
+        rowst = get_unique_candidates_in_row(c, i, d)
+        rows.extend(rowst)
+    
+    for n, (i, j) in rows:
+        set_candidate(c, n, i, j, d)
+
+    for j in range(9):
+        colst = get_unique_candidates_in_col(c, j, d)
+        cols.extend(colst)
+
+    for n, (i, j) in cols:
+        set_candidate(c, n, i, j, d)
+        
+    for idx in range(9):
+        squrest = get_unique_candidates_in_square(c, idx, d)
+        squares.extend(squrest)
+
+    for n, (i, j) in squares:
+        set_candidate(c, n, i, j, d)
+
+
 def process_definitory_lines(c):
     rows = {}
     cols = {}
@@ -181,8 +264,9 @@ class Solution:
         :type board: List[List[str]]
         :rtype: void Do not return anything, modify board in-place instead.
         """
+        d = set()
         c = create_candidates(board)
-        init_candidates(c)
+        init_candidates(c, d)
         print(candidates_to_str(c))
         process_definitory_lines(c)
         print(candidates_to_str(c))
