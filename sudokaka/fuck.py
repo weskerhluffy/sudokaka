@@ -3,6 +3,10 @@ Created on 05/05/2018
 
 @author: ernesto
 '''
+# XXX: https://www.sudoku-solutions.com
+# XXX: pass cacacacaca
+# XXX: http://www.sudokukingdom.com
+# XXX: https://leetcode.com/problems/sudoku-solver/description/
 
 from operator import iadd, itemgetter
 
